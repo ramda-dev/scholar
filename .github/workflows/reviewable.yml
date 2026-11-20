@@ -1,0 +1,30 @@
+# Keeps the `reviewable` label in step with a pull request's draft state:
+# added when the pull request is opened ready for review or leaves draft,
+# removed when it returns to draft.
+name: reviewable
+
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review, converted_to_draft]
+
+permissions:
+  pull-requests: write
+  issues: write
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set the reviewable label from the draft state
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          DRAFT: ${{ github.event.pull_request.draft }}
+        run: |
+          gh label create reviewable --repo "$GITHUB_REPOSITORY" --color 0E8A16 \
+            --description "Ready for review" 2>/dev/null || true
+          if [ "$DRAFT" = "true" ]; then
+            gh pr edit "$PR" --repo "$GITHUB_REPOSITORY" --remove-label reviewable
+          else
+            gh pr edit "$PR" --repo "$GITHUB_REPOSITORY" --add-label reviewable
+          fi
